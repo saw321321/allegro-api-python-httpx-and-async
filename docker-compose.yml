@@ -1,0 +1,7 @@
+services:
+  allegroapi:
+    build: .
+    container_name: allegro_api_app
+    volumes:
+      - .:/app
+    working_dir: /app

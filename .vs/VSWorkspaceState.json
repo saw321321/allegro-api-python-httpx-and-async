@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\src",
+    "\\src\\allegro_api",
+    "\\src\\allegro_api\\auth",
+    "\\tests"
+  ],
+  "SelectedNode": "\\src\\allegro_api\\base.py",
+  "PreviewInSolutionExplorer": false
+}
