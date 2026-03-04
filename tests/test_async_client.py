@@ -1,8 +1,11 @@
-"""
+﻿"""
 Tests for async Allegro API client.
 """
 
 import pytest
+import inspect
+from src.allegro_api.base import AsyncBaseAPIClient
+
 from unittest.mock import patch, AsyncMock
 
 from allegro_api import AsyncAllegroAPI
@@ -293,3 +296,8 @@ class TestAsyncAllegroAPI:
         assert "client_id=test_client_id" in url
         assert "state=test_state" in url
 
+    def test_handle_response_is_sync(self):
+        # test do błędu 2: _handle_response nie musi być asynchroniczny (przez co nie powinien)
+        assert not inspect.iscoroutinefunction(
+            AsyncBaseAPIClient._handle_response
+        ), "_handle_response should not be async"

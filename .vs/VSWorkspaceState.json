@@ -7,6 +7,6 @@
     "\\src\\allegro_api\\resources",
     "\\tests"
   ],
-  "SelectedNode": "\\tests\\test_client.py",
+  "SelectedNode": "\\src\\allegro_api\\base.py",
   "PreviewInSolutionExplorer": false
 }

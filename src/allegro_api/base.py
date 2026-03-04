@@ -322,7 +322,7 @@ class AsyncBaseAPIClient:
         """
         return urljoin(self.base_url, endpoint.lstrip("/"))
     
-    async def _handle_response(self, response: httpx.Response) -> Dict[str, Any]:
+    def _handle_response(self, response: httpx.Response) -> Dict[str, Any]:
         """
         Handle API response and raise appropriate exceptions.
         
