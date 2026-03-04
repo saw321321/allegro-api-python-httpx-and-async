@@ -4,8 +4,9 @@
     "\\src",
     "\\src\\allegro_api",
     "\\src\\allegro_api\\auth",
+    "\\src\\allegro_api\\resources",
     "\\tests"
   ],
-  "SelectedNode": "\\src\\allegro_api\\base.py",
+  "SelectedNode": "\\tests\\test_client.py",
   "PreviewInSolutionExplorer": false
 }

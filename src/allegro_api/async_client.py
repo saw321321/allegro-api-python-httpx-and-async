@@ -4,6 +4,7 @@ Main Allegro API client.
 
 from typing import Optional, Dict, Any, List
 import logging
+import httpx
 
 from allegro_api.exceptions import AuthenticationError
 from .base import AsyncBaseAPIClient

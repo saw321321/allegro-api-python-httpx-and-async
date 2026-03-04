@@ -292,3 +292,4 @@ class TestAsyncAllegroAPI:
         assert "https://allegro.pl/auth/oauth/authorize" in url
         assert "client_id=test_client_id" in url
         assert "state=test_state" in url
+

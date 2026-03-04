@@ -3,10 +3,10 @@ Tests for main Allegro API client.
 """
 
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import Mock, patch
 
 from allegro_api import AllegroAPI
-from allegro_api.auth import OAuth2Token, OAuth2Client
+from allegro_api.auth import OAuth2Token,OAuth2Client
 from allegro_api.exceptions import AuthenticationError
 from allegro_api.resources import OffersResource, CategoriesResource, OrdersResource, UserResource
 
@@ -178,21 +178,20 @@ class TestAllegroAPI:
             access_token="expired_token",
             token_type="Bearer",
             expires_in=1,
-            _created_at=0,
+            _created_at=0,  # Very old token
         )
         
         api.ensure_authenticated()
         
         mock_refresh.assert_called_once()
     
-    @patch.object(AllegroAPI, "get", new_callable=AsyncMock)
-    @pytest.mark.asyncio
-    async def test_search_offers(self, mock_get):
+    @patch.object(AllegroAPI, "get")
+    def test_search_offers(self, mock_get):
         """Test search_offers convenience method."""
         mock_get.return_value = {"offers": []}
         
         api = AllegroAPI()
-        await api.search_offers(
+        result = api.search_offers(
             phrase="test",
             category_id="123",
             seller_id="456",
@@ -204,7 +203,7 @@ class TestAllegroAPI:
             offset=10,
         )
         
-        mock_get.assert_awaited_once_with(
+        mock_get.assert_called_once_with(
             "/offers/listing",
             params={
                 "phrase": "test",
@@ -219,20 +218,18 @@ class TestAllegroAPI:
             }
         )
     
-    @patch.object(AllegroAPI, "get", new_callable=AsyncMock)
-    @pytest.mark.asyncio
-    async def test_get_offer(self, mock_get):
+    @patch.object(AllegroAPI, "get")
+    def test_get_offer(self, mock_get):
         """Test get_offer convenience method."""
         mock_get.return_value = {"id": "123"}
         
         api = AllegroAPI()
-        await api.get_offer("123")
+        result = api.get_offer("123")
         
-        mock_get.assert_awaited_once_with("/offers/123")
+        mock_get.assert_called_once_with("/offers/123")
     
-    @patch.object(AllegroAPI, "get", new_callable=AsyncMock)
-    @pytest.mark.asyncio
-    async def test_get_user_offers(self, mock_get):
+    @patch.object(AllegroAPI, "get")
+    def test_get_user_offers(self, mock_get):
         """Test get_user_offers convenience method."""
         mock_get.return_value = {"offers": []}
         
@@ -243,7 +240,7 @@ class TestAllegroAPI:
             expires_in=3600,
         )
         
-        await api.get_user_offers(
+        result = api.get_user_offers(
             offer_id="123",
             name="test",
             selling_format="BUY_NOW",
@@ -255,7 +252,7 @@ class TestAllegroAPI:
             sort="-startTime",
         )
         
-        mock_get.assert_awaited_once_with(
+        mock_get.assert_called_once_with(
             "/sale/offers",
             params={
                 "offer.id": "123",
@@ -267,7 +264,7 @@ class TestAllegroAPI:
                 "limit": 30,
                 "offset": 5,
                 "sort": "-startTime",
-            },
+            }
         )
     
     def test_get_authorization_url(self):
