@@ -4,15 +4,40 @@ Tests for async Allegro API client.
 
 import pytest
 import inspect
+import ast
+import textwrap
+
 from src.allegro_api.base import AsyncBaseAPIClient
 
 from unittest.mock import patch, AsyncMock
 
 from allegro_api import AsyncAllegroAPI
-from allegro_api.auth import OAuth2Token, OAuth2Client
+from allegro_api.auth import OAuth2Token, AsyncOAuth2Client
 from allegro_api.exceptions import AuthenticationError
 from allegro_api.resources import OffersResource, CategoriesResource, OrdersResource, UserResource
 
+
+def _get_awaited_methods(func):
+    """
+    Zwraca listę metod które są awaitowane w funkcji.
+    """
+    source = inspect.getsource(func)
+    source = textwrap.dedent(source)
+
+    tree = ast.parse(source)
+
+    awaited = []
+
+    class AwaitVisitor(ast.NodeVisitor):
+        def visit_Await(self, node):
+            if isinstance(node.value, ast.Call):
+                if isinstance(node.value.func, ast.Attribute):
+                    awaited.append(node.value.func.attr)
+            self.generic_visit(node)
+
+    AwaitVisitor().visit(tree)
+
+    return awaited
 
 class TestAsyncAllegroAPI:
     """Test AsyncAllegroAPI client."""
@@ -57,7 +82,7 @@ class TestAsyncAllegroAPI:
         assert api._token.access_token == "test_token"
         assert api.oauth_client is None  # No OAuth client without client_id
     
-    @patch.object(OAuth2Client, "authenticate_with_device_flow", new_callable=AsyncMock)
+    @patch.object(AsyncOAuth2Client, "authenticate_with_device_flow", new_callable=AsyncMock)
     @pytest.mark.asyncio
     async def test_authenticate_device_flow(self, mock_device_flow):
         """Test device flow authentication."""
@@ -77,7 +102,7 @@ class TestAsyncAllegroAPI:
         assert api.refresh_token == "new_refresh_token"
         mock_device_flow.assert_awaited_once_with(False)
     
-    @patch.object(OAuth2Client, "exchange_code_for_token", new_callable=AsyncMock)
+    @patch.object(AsyncOAuth2Client, "exchange_code_for_token", new_callable=AsyncMock)
     @pytest.mark.asyncio
     async def test_authenticate_code_flow(self, mock_exchange):
         """Test authorization code flow authentication."""
@@ -124,7 +149,7 @@ class TestAsyncAllegroAPI:
         with pytest.raises(ValueError, match="OAuth2 client not initialized"):
             await api.authenticate()
     
-    @patch.object(OAuth2Client, "refresh_token", new_callable=AsyncMock)
+    @patch.object(AsyncOAuth2Client, "refresh_token", new_callable=AsyncMock)
     @pytest.mark.asyncio
     async def test_refresh_access_token(self, mock_refresh):
         """Test refreshing access token."""
@@ -295,9 +320,64 @@ class TestAsyncAllegroAPI:
         assert "https://allegro.pl/auth/oauth/authorize" in url
         assert "client_id=test_client_id" in url
         assert "state=test_state" in url
-
+#My new tests
     def test_handle_response_is_sync(self):
         # test do błędu 2: _handle_response nie musi być asynchroniczny (przez co nie powinien)
         assert not inspect.iscoroutinefunction(
             AsyncBaseAPIClient._handle_response
         ), "_handle_response should not be async"
+
+
+
+    def test_authenticate_does_not_await_sync_oauth_methods(self):
+        """
+        Error 1:
+        authenticate() must not await synchronous OAuth methods.
+        """
+
+        awaited = _get_awaited_methods(AsyncAllegroAPI.authenticate)
+
+        oauth_methods = {
+            "authenticate_with_device_flow": AsyncOAuth2Client.authenticate_with_device_flow,
+            "exchange_code_for_token": AsyncOAuth2Client.exchange_code_for_token,
+            "client_credentials_flow": AsyncOAuth2Client.client_credentials_flow,
+        }
+
+        for name in awaited:
+            if name in oauth_methods:
+
+                method = oauth_methods[name]
+
+                assert inspect.iscoroutinefunction(method), (
+                    f"{name} is awaited in authenticate() but is not async"
+                )
+
+
+    def test_refresh_access_token_does_not_await_sync_oauth(self):
+        """
+        Error 1:
+        refresh_access_token() must not await sync OAuth method.
+        """
+
+        awaited = _get_awaited_methods(AsyncAllegroAPI.refresh_access_token)
+
+        if "refresh_token" in awaited:
+
+            assert inspect.iscoroutinefunction(
+                AsyncOAuth2Client.refresh_token
+            ), "AsyncOAuth2Client.refresh_token is awaited but is not async"
+
+
+    def test_ensure_authenticated_awaits_only_async_methods(self):
+        """
+        Error 1:
+        ensure_authenticated() must only await async methods.
+        """
+
+        awaited = _get_awaited_methods(AsyncAllegroAPI.ensure_authenticated)
+
+        if "refresh_access_token" in awaited:
+
+            assert inspect.iscoroutinefunction(
+                AsyncAllegroAPI.refresh_access_token
+            ), "refresh_access_token must be async"

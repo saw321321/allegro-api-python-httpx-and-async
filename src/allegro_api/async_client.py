@@ -1,5 +1,5 @@
 """
-Main Allegro API client.
+Main Allegro API Async client.
 """
 
 from typing import Optional, Dict, Any, List
@@ -8,7 +8,7 @@ import httpx
 
 from allegro_api.exceptions import AuthenticationError
 from .base import AsyncBaseAPIClient
-from .auth import OAuth2Client, OAuth2Token
+from .auth import AsyncOAuth2Client, OAuth2Token
 from .resources.offers import OffersResource
 from .resources.categories import CategoriesResource
 from .resources.orders import OrdersResource
@@ -70,9 +70,9 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
         self.refresh_token = refresh_token
         
         # Initialize OAuth2 client if credentials provided
-        self.oauth_client = None
+        self.oauth_client: Optional[AsyncOAuth2Client] = None
         if client_id:
-            self.oauth_client = OAuth2Client(
+            self.oauth_client = AsyncOAuth2Client(
                 client_id=client_id,
                 client_secret=client_secret,
                 sandbox=sandbox,
@@ -91,7 +91,7 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
         # Initialize resources
         self._init_resources()
     
-    def _init_resources(self) -> None:
+    def _init_resources(self) -> None: #no async needed but need to change to async resources
         """Initialize API resources."""
         self.offers = OffersResource(self)
         self.categories = CategoriesResource(self)
@@ -107,12 +107,12 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
         self.auctions = AuctionsResource(self)
         self.misc = MiscResource(self)
     
-    async def authenticate(
+    async def authenticate( 
         self,
         method: str = "device",
         code: Optional[str] = None,
         open_browser: bool = True,
-    ) -> OAuth2Token:
+    ) -> OAuth2Token:  #NEEDS TO BE ASYNC
         """
         Authenticate with Allegro API.
         
@@ -149,7 +149,7 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
         
         return token
     
-    async def refresh_access_token(self) -> OAuth2Token:
+    async def refresh_access_token(self) -> OAuth2Token:  # NEEDS TO BE ASYNC
         """
         Refresh access token using refresh token.
         
@@ -175,7 +175,7 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
         
         return token
     
-    async def ensure_authenticated(self) -> None:
+    async def ensure_authenticated(self) -> None:  # NEEDS TO BE ASYNC
         """
         Ensure client is authenticated, refreshing token if needed.
         
@@ -189,7 +189,8 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
             logger.info("Access token expired, refreshing...")
             await self.refresh_access_token()
     
-    def get_authorization_url(self, state: Optional[str] = None) -> str:
+    
+    def get_authorization_url(self, state: Optional[str] = None) -> str: # no async needed
         """
         Get authorization URL for web flow.
         
@@ -220,7 +221,7 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
         exclude: Optional[List[str]] = None,
         limit: int = 20,
         offset: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:  # NEEDS TO BE ASYNC
         """
         Search for offers.
         
@@ -263,7 +264,7 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
         
         return await self.get("/offers/listing", params=params)
     
-    async def get_offer(self, offer_id: str) -> Dict[str, Any]:
+    async def get_offer(self, offer_id: str) -> Dict[str, Any]: # NEEDS TO BE ASYNC
         """
         Get public offer details.
         
@@ -275,7 +276,7 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
         """
         return await self.get(f"/offers/{offer_id}")
     
-    async def get_user_offers(
+    async def get_user_offers(  # NEEDS TO BE ASYNC
         self,
         offer_id: Optional[str] = None,
         name: Optional[str] = None,

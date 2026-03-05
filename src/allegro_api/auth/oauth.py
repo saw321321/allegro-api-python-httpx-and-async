@@ -312,3 +312,181 @@ class OAuth2Client:
             raise AuthenticationError(f"Client credentials flow failed: {str(e)}")
         except httpx.HTTPStatusError as e:
             raise AuthenticationError(f"Client credentials flow failed: {str(e)}")
+
+class AsyncOAuth2Client:
+    """Asynchronous OAuth2 client for Allegro API authentication."""
+
+    AUTHORIZATION_URL = OAuth2Client.AUTHORIZATION_URL
+    TOKEN_URL = OAuth2Client.TOKEN_URL
+    DEVICE_URL = OAuth2Client.DEVICE_URL
+
+    SANDBOX_AUTHORIZATION_URL = OAuth2Client.SANDBOX_AUTHORIZATION_URL
+    SANDBOX_TOKEN_URL = OAuth2Client.SANDBOX_TOKEN_URL
+    SANDBOX_DEVICE_URL = OAuth2Client.SANDBOX_DEVICE_URL
+
+    def __init__(
+        self,
+        client_id: str,
+        client_secret: Optional[str] = None,
+        redirect_uri: str = "http://localhost:8000",
+        sandbox: bool = False,
+    ):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
+        self.sandbox = sandbox
+
+        if sandbox:
+            self.authorization_url = self.SANDBOX_AUTHORIZATION_URL
+            self.token_url = self.SANDBOX_TOKEN_URL
+            self.device_url = self.SANDBOX_DEVICE_URL
+        else:
+            self.authorization_url = self.AUTHORIZATION_URL
+            self.token_url = self.TOKEN_URL
+            self.device_url = self.DEVICE_URL
+
+    def get_authorization_url(self, state: Optional[str] = None) -> str:
+        params = {
+            "response_type": "code",
+            "client_id": self.client_id,
+            "redirect_uri": self.redirect_uri,
+        }
+        if state:
+            params["state"] = state
+        return f"{self.authorization_url}?{urlencode(params)}"
+
+    async def exchange_code_for_token(self, code: str) -> OAuth2Token:
+        if not self.client_secret:
+            raise AuthenticationError("Client secret required for authorization code flow")
+        data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": self.redirect_uri,
+        }
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    self.token_url,
+                    data=data,
+                    auth=BasicAuth(self.client_id, self.client_secret),
+                )
+                response.raise_for_status()
+                return OAuth2Token.from_response(response.json())
+            except httpx.RequestError as e:
+                raise AuthenticationError(f"Token exchange failed: {str(e)}")
+            except httpx.HTTPStatusError as e:
+                raise AuthenticationError(f"Token exchange failed: {str(e)}")
+
+    async def refresh_token(self, refresh_token: str) -> OAuth2Token:
+        if not self.client_secret:
+            raise AuthenticationError("Client secret required for token refresh")
+        data = {"grant_type": "refresh_token", "refresh_token": refresh_token}
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    self.token_url,
+                    data=data,
+                    auth=BasicAuth(self.client_id, self.client_secret),
+                )
+                response.raise_for_status()
+                return OAuth2Token.from_response(response.json())
+            except httpx.RequestError as e:
+                raise AuthenticationError(f"Token refresh failed: {str(e)}")
+            except httpx.HTTPStatusError as e:
+                raise AuthenticationError(f"Token refresh failed: {str(e)}")
+
+    async def device_flow_start(self) -> Dict[str, Any]:
+        data = {"client_id": self.client_id}
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(self.device_url, data=data)
+                response.raise_for_status()
+                return response.json()
+            except httpx.RequestError as e:
+                raise AuthenticationError(f"Device flow start failed: {str(e)}")
+            except httpx.HTTPStatusError as e:
+                raise AuthenticationError(f"Device flow start failed: {str(e)}")
+
+    async def device_flow_poll(self, device_code: str) -> OAuth2Token:
+        data = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            "device_code": device_code,
+        }
+        auth = BasicAuth(self.client_id, self.client_secret) if self.client_secret else None
+        if not auth:
+            data["client_id"] = self.client_id
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(self.token_url, data=data, auth=auth)
+                if response.status_code == 400:
+                    error_data = response.json()
+                    error = error_data.get("error")
+                    if error == "authorization_pending":
+                        raise AuthenticationError("Authorization pending", status_code=400)
+                    elif error == "slow_down":
+                        raise AuthenticationError("Slow down", status_code=400)
+                    elif error == "access_denied":
+                        raise AuthenticationError("Access denied by user", status_code=400)
+                    elif error == "expired_token":
+                        raise AuthenticationError("Device code expired", status_code=400)
+                    else:
+                        raise AuthenticationError(f"Device flow error: {error}", status_code=400)
+                response.raise_for_status()
+                return OAuth2Token.from_response(response.json())
+            except httpx.RequestError as e:
+                raise AuthenticationError(f"Device flow poll failed: {str(e)}")
+            except httpx.HTTPStatusError as e:
+                raise AuthenticationError(f"Device flow poll failed: {str(e)}")
+
+    async def authenticate_with_device_flow(self, open_browser: bool = True) -> OAuth2Token:
+        device_response = await self.device_flow_start()
+        device_code = device_response["device_code"]
+        user_code = device_response["user_code"]
+        verification_uri = device_response["verification_uri"]
+        verification_uri_complete = device_response.get("verification_uri_complete")
+        expires_in = device_response["expires_in"]
+        interval = device_response.get("interval", 5)
+
+        print(f"\nTo authenticate, visit: {verification_uri}")
+        print(f"And enter code: {user_code}")
+        if verification_uri_complete:
+            print(f"\nOr visit: {verification_uri_complete}")
+        if open_browser and verification_uri_complete:
+            webbrowser.open(verification_uri_complete)
+
+        print("\nWaiting for authorization...")
+        start_time = time.time()
+        while time.time() - start_time < expires_in:
+            try:
+                token = await self.device_flow_poll(device_code)
+                print("Authorization successful!")
+                return token
+            except AuthenticationError as e:
+                if "Authorization pending" in str(e):
+                    await asyncio.sleep(interval)
+                    continue
+                elif "Slow down" in str(e):
+                    interval += 5
+                    await asyncio.sleep(interval)
+                    continue
+                else:
+                    raise
+        raise AuthenticationError("Device flow authentication timed out")
+
+    async def client_credentials_flow(self) -> OAuth2Token:
+        if not self.client_secret:
+            raise AuthenticationError("Client secret required for client credentials flow")
+        data = {"grant_type": "client_credentials"}
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    self.token_url,
+                    data=data,
+                    auth=BasicAuth(self.client_id, self.client_secret),
+                )
+                response.raise_for_status()
+                return OAuth2Token.from_response(response.json())
+            except httpx.RequestError as e:
+                raise AuthenticationError(f"Client credentials flow failed: {str(e)}")
+            except httpx.HTTPStatusError as e:
+                raise AuthenticationError(f"Client credentials flow failed: {str(e)}")
