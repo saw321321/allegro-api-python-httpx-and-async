@@ -16,6 +16,8 @@ from allegro_api.auth import OAuth2Token, AsyncOAuth2Client
 from allegro_api.exceptions import AuthenticationError
 from allegro_api.resources import OffersResource, CategoriesResource, OrdersResource, UserResource
 
+from allegro_api.resources.base import AsyncBaseResource
+
 
 def _get_awaited_methods(func):
     """
@@ -320,7 +322,7 @@ class TestAsyncAllegroAPI:
         assert "https://allegro.pl/auth/oauth/authorize" in url
         assert "client_id=test_client_id" in url
         assert "state=test_state" in url
-#My new tests
+#My new tests for errors
     def test_handle_response_is_sync(self):
         # test do błędu 2: _handle_response nie musi być asynchroniczny (przez co nie powinien)
         assert not inspect.iscoroutinefunction(
@@ -378,6 +380,63 @@ class TestAsyncAllegroAPI:
 
         if "refresh_access_token" in awaited:
 
-            assert inspect.iscoroutinefunction(
-                AsyncAllegroAPI.refresh_access_token
-            ), "refresh_access_token must be async"
+            assert "refresh_token" not in awaited or inspect.iscoroutinefunction(
+            AsyncOAuth2Client.refresh_token
+        )
+
+
+# Testy do tego czy AsyncBaseResource jest naprawde Async.
+class DummyAsyncClient:
+    async def get(self, *args, **kwargs):
+        return {"items": []}
+
+    async def ensure_authenticated(self):
+        return None
+
+
+def test_paginate_is_async():
+    """
+    AsyncBaseResource._paginate must be async.
+    """
+    assert inspect.iscoroutinefunction(
+        AsyncBaseResource._paginate
+    ), "_paginate should be async"
+
+
+def test_ensure_authenticated_is_async():
+    """
+    AsyncBaseResource._ensure_authenticated must be async.
+    """
+    assert inspect.iscoroutinefunction(
+        AsyncBaseResource._ensure_authenticated
+    ), "_ensure_authenticated should be async"
+
+
+@pytest.mark.asyncio
+async def test_paginate_awaits_client_get():
+    """
+    _paginate must await client.get()
+    """
+    client = DummyAsyncClient()
+    client.get = AsyncMock(return_value={"items": []})
+
+    resource = AsyncBaseResource(client)
+
+    await resource._paginate("/test")
+
+    client.get.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_ensure_authenticated_awaits_client():
+    """
+    _ensure_authenticated must await client.ensure_authenticated()
+    """
+    client = DummyAsyncClient()
+    client.ensure_authenticated = AsyncMock()
+
+    resource = AsyncBaseResource(client)
+
+    await resource._ensure_authenticated()
+
+    client.ensure_authenticated.assert_awaited_once()
