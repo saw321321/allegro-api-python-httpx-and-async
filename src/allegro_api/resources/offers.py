@@ -5,7 +5,7 @@ Offers resource for Allegro API.
 from typing import Dict, Any, List, Optional, Union
 import json
 
-from .base import BaseResource
+from .base import BaseResource,AsyncBaseResource
 
 
 class OffersResource(BaseResource):
@@ -387,3 +387,383 @@ class OffersResource(BaseResource):
         data = {"tags": [{"id": tag} for tag in tags]}
         
         return self.client.put(f"/sale/offers/{offer_id}/tags", json_data=data)
+
+class AsyncOffersResource(AsyncBaseResource):
+    """Async Resource for managing offers."""
+    
+    async def list(
+        self,
+        offer_id: Optional[str] = None,
+        name: Optional[str] = None,
+        selling_format: Optional[str] = None,
+        publication_status: Optional[List[str]] = None,
+        selling_status: Optional[List[str]] = None,
+        external_id: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0,
+        sort: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        List user's offers.
+        
+        Args:
+            offer_id: Filter by offer ID
+            name: Filter by name
+            selling_format: Filter by format (BUY_NOW, AUCTION, ADVERTISEMENT)
+            publication_status: Filter by publication status
+            selling_status: Filter by selling status
+            external_id: Filter by external ID
+            limit: Number of results (max 1000)
+            offset: Results offset
+            sort: Sort order
+            
+        Returns:
+            Offers list response
+        """
+        await self._ensure_authenticated()
+        
+        params = {
+            "offer.id": offer_id,
+            "name": name,
+            "sellingMode.format": selling_format,
+            "external.id": external_id,
+            "limit": min(limit, 1000),
+            "offset": offset,
+            "sort": sort,
+        }
+        
+        # Handle list parameters
+        if publication_status:
+            params["publication.status"] = publication_status
+        if selling_status:
+            params["sellingMode.status"] = selling_status
+        
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        
+        return await self.client.get("/sale/offers", params=params)
+    
+    async def get(self, offer_id: str) -> Dict[str, Any]:
+        """
+        Get offer details.
+        
+        Args:
+            offer_id: Offer ID
+            
+        Returns:
+            Offer details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/offers/{offer_id}")
+    
+    async def create(self, offer_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create new offer.
+        
+        Args:
+            offer_data: Offer data
+            
+        Returns:
+            Created offer response
+        """
+        await self._ensure_authenticated()
+        return await self.client.post("/sale/offers", json_data=offer_data)
+    
+    async def update(self, offer_id: str, offer_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update existing offer.
+        
+        Args:
+            offer_id: Offer ID
+            offer_data: Updated offer data
+            
+        Returns:
+            Updated offer response
+        """
+        await self._ensure_authenticated()
+        return await self.client.put(f"/sale/offers/{offer_id}", json_data=offer_data)
+    
+    async def patch(
+        self,
+        offer_id: str,
+        operations: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Partially update offer using JSON Patch.
+        
+        Args:
+            offer_id: Offer ID
+            operations: List of patch operations
+            
+        Returns:
+            Patched offer response
+        """
+        await self._ensure_authenticated()
+        
+        headers = {
+            "Content-Type": "application/vnd.allegro.public.v1+json",
+        }
+        
+        return await self.client.patch(
+            f"/sale/offers/{offer_id}",
+            json_data=operations,
+            headers=headers,
+        )
+    
+    async def delete(self, offer_id: str) -> None:
+        """
+        End offer.
+        
+        Args:
+            offer_id: Offer ID
+        """
+        await self._ensure_authenticated()
+        await self.client.delete(f"/sale/offers/{offer_id}")
+    
+    async def publish(self, offer_id: str) -> Dict[str, Any]:
+        """
+        Publish draft offer.
+        
+        Args:
+            offer_id: Offer ID
+            
+        Returns:
+            Publication response
+        """
+        await self._ensure_authenticated()
+        return self.client.put(f"/sale/offer-publication-commands/{offer_id}")
+    
+    async def unpublish(self, offer_id: str) -> Dict[str, Any]:
+        """
+        Unpublish offer.
+        
+        Args:
+            offer_id: Offer ID
+            
+        Returns:
+            Unpublication response
+        """
+        await self._ensure_authenticated()
+        return await self.client.delete(f"/sale/offer-publication-commands/{offer_id}")
+    
+    async def get_events(
+        self,
+        from_: Optional[str] = None,
+        type_: Optional[List[str]] = None,
+        limit: int = 100,
+    ) -> Dict[str, Any]:
+        """
+        Get offer events.
+        
+        Args:
+            from_: Event ID to start from
+            type_: Event types to filter
+            limit: Number of events (max 1000)
+            
+        Returns:
+            Events response
+        """
+        await self._ensure_authenticated()
+        
+        params = {
+            "from": from_,
+            "type": type_,
+            "limit": min(limit, 1000),
+        }
+        
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        
+        return await self.client.get("/sale/offer-events", params=params)
+    
+    async def get_quantity(self, offer_id: str) -> Dict[str, Any]:
+        """
+        Get offer quantity.
+        
+        Args:
+            offer_id: Offer ID
+            
+        Returns:
+            Quantity information
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/offers/{offer_id}/quantity")
+    
+    async def update_quantity(
+        self,
+        offer_id: str,
+        quantity: int,
+        operation: str = "set"
+    ) -> Dict[str, Any]:
+        """
+        Update offer quantity.
+        
+        Args:
+            offer_id: Offer ID
+            quantity: New quantity
+            operation: Operation type (set, increase, decrease)
+            
+        Returns:
+            Updated quantity response
+        """
+        await self._ensure_authenticated()
+        
+        data = {
+            "quantity": quantity,
+            "operation": operation,
+        }
+        
+        return await self.client.put(
+            f"/sale/offers/{offer_id}/quantity",
+            json_data=data,
+        )
+    
+    async def get_price(self, offer_id: str) -> Dict[str, Any]:
+        """
+        Get offer price.
+        
+        Args:
+            offer_id: Offer ID
+            
+        Returns:
+            Price information
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/offers/{offer_id}/price")
+    
+    async def update_price(
+        self,
+        offer_id: str,
+        amount: float,
+        currency: str = "PLN"
+    ) -> Dict[str, Any]:
+        """
+        Update offer price.
+        
+        Args:
+            offer_id: Offer ID
+            amount: New price amount
+            currency: Price currency
+            
+        Returns:
+            Updated price response
+        """
+        await self._ensure_authenticated()
+        
+        data = {
+            "amount": str(amount),
+            "currency": currency,
+        }
+        
+        return await self.client.put(
+            f"/sale/offers/{offer_id}/price",
+            json_data=data,
+        )
+    
+    async def create_from_product(
+        self,
+        product_id: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        Create offer from product.
+        
+        Args:
+            product_id: Product ID
+            parameters: Product parameters
+            **kwargs: Additional offer fields
+            
+        Returns:
+            Created offer response
+        """
+        await self._ensure_authenticated()
+        
+        data = {
+            "product": {
+                "id": product_id,
+            }
+        }
+        
+        if parameters:
+            data["product"]["parameters"] = parameters
+        
+        # Add any additional fields
+        data.update(kwargs)
+        
+        return await self.client.post("/sale/product-offers", json_data=data)
+    
+    async def batch_update(
+        self,
+        operations: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Batch update multiple offers.
+        
+        Args:
+            operations: List of update operations
+            
+        Returns:
+            Batch operation response
+        """
+        await self._ensure_authenticated()
+        
+        data = {"operations": operations}
+        
+        return await self.client.post("/sale/offer-modifications", json_data=data)
+    
+    async def get_batch_status(self, command_id: str) -> Dict[str, Any]:
+        """
+        Get batch operation status.
+        
+        Args:
+            command_id: Command ID from batch operation
+            
+        Returns:
+            Status response
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/offer-modifications/{command_id}")
+    
+    async def get_promotions(self, offer_id: str) -> Dict[str, Any]:
+        """
+        Get offer promotions.
+        
+        Args:
+            offer_id: Offer ID
+            
+        Returns:
+            Promotions information
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/offers/{offer_id}/promotions")
+    
+    async def get_tags(self, offer_id: str) -> Dict[str, Any]:
+        """
+        Get offer tags.
+        
+        Args:
+            offer_id: Offer ID
+            
+        Returns:
+            Tags information
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/offers/{offer_id}/tags")
+    
+    async def update_tags(self, offer_id: str, tags: List[str]) -> Dict[str, Any]:
+        """
+        Update offer tags.
+        
+        Args:
+            offer_id: Offer ID
+            tags: List of tag IDs
+            
+        Returns:
+            Updated tags response
+        """
+        await self._ensure_authenticated()
+        
+        data = {"tags": [{"id": tag} for tag in tags]}
+        
+        return await self.client.put(f"/sale/offers/{offer_id}/tags", json_data=data)

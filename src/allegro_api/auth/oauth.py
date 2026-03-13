@@ -10,6 +10,7 @@ import logging
 
 import httpx
 from httpx import BasicAuth
+import asyncio
 
 from ..exceptions import AuthenticationError
 from pydantic import BaseModel, Field

@@ -9,12 +9,13 @@ import textwrap
 
 from src.allegro_api.base import AsyncBaseAPIClient
 
+
 from unittest.mock import patch, AsyncMock
 
 from allegro_api import AsyncAllegroAPI
 from allegro_api.auth import OAuth2Token, AsyncOAuth2Client
 from allegro_api.exceptions import AuthenticationError
-from allegro_api.resources import OffersResource, CategoriesResource, OrdersResource, UserResource
+from allegro_api.resources import AsyncOffersResource, AsyncCategoriesResource, AsyncOrdersResource, AsyncUserResource
 
 from allegro_api.resources.base import AsyncBaseResource
 
@@ -63,10 +64,10 @@ class TestAsyncAllegroAPI:
         assert api.oauth_client is not None
         
         # Check resources initialization
-        assert isinstance(api.offers, OffersResource)
-        assert isinstance(api.categories, CategoriesResource)
-        assert isinstance(api.orders, OrdersResource)
-        assert isinstance(api.user, UserResource)
+        assert isinstance(api.offers, AsyncOffersResource)
+        assert isinstance(api.categories, AsyncCategoriesResource)
+        assert isinstance(api.orders, AsyncOrdersResource)
+        assert isinstance(api.user, AsyncUserResource)
     
     def test_sandbox_initialization(self):
         """Test sandbox environment initialization."""
@@ -322,6 +323,8 @@ class TestAsyncAllegroAPI:
         assert "https://allegro.pl/auth/oauth/authorize" in url
         assert "client_id=test_client_id" in url
         assert "state=test_state" in url
+
+
 #My new tests for errors
     def test_handle_response_is_sync(self):
         # test do błędu 2: _handle_response nie musi być asynchroniczny (przez co nie powinien)
@@ -332,10 +335,7 @@ class TestAsyncAllegroAPI:
 
 
     def test_authenticate_does_not_await_sync_oauth_methods(self):
-        """
-        Error 1:
-        authenticate() must not await synchronous OAuth methods.
-        """
+        #test do błędu 3 - w async_client.py używane są awaity na metody synhroniczne
 
         awaited = _get_awaited_methods(AsyncAllegroAPI.authenticate)
 
@@ -356,10 +356,7 @@ class TestAsyncAllegroAPI:
 
 
     def test_refresh_access_token_does_not_await_sync_oauth(self):
-        """
-        Error 1:
-        refresh_access_token() must not await sync OAuth method.
-        """
+        #test do błędu 3 - w async_client.py używane są awaity na metody synhroniczne
 
         awaited = _get_awaited_methods(AsyncAllegroAPI.refresh_access_token)
 
@@ -371,10 +368,7 @@ class TestAsyncAllegroAPI:
 
 
     def test_ensure_authenticated_awaits_only_async_methods(self):
-        """
-        Error 1:
-        ensure_authenticated() must only await async methods.
-        """
+        #test do błędu 3 - w async_client.py używane są awaity na metody synhroniczne
 
         awaited = _get_awaited_methods(AsyncAllegroAPI.ensure_authenticated)
 
@@ -395,18 +389,16 @@ class DummyAsyncClient:
 
 
 def test_paginate_is_async():
-    """
-    AsyncBaseResource._paginate must be async.
-    """
+    #test do błędu 4 - AsyncBaseResource._paginate musi być async.
+
     assert inspect.iscoroutinefunction(
         AsyncBaseResource._paginate
     ), "_paginate should be async"
 
 
 def test_ensure_authenticated_is_async():
-    """
-    AsyncBaseResource._ensure_authenticated must be async.
-    """
+    #test do błędu 4 - AsyncBaseResource._ensure_authenticated musi być async.
+
     assert inspect.iscoroutinefunction(
         AsyncBaseResource._ensure_authenticated
     ), "_ensure_authenticated should be async"
@@ -414,9 +406,8 @@ def test_ensure_authenticated_is_async():
 
 @pytest.mark.asyncio
 async def test_paginate_awaits_client_get():
-    """
-    _paginate must await client.get()
-    """
+    #test do błędu 4 - _paginate musi awaitować client.get()
+
     client = DummyAsyncClient()
     client.get = AsyncMock(return_value={"items": []})
 
@@ -429,9 +420,8 @@ async def test_paginate_awaits_client_get():
 
 @pytest.mark.asyncio
 async def test_ensure_authenticated_awaits_client():
-    """
-    _ensure_authenticated must await client.ensure_authenticated()
-    """
+    #test do błędu 4 - _ensure_authenticated musi awaitować client.ensure_authenticated()
+
     client = DummyAsyncClient()
     client.ensure_authenticated = AsyncMock()
 
@@ -440,3 +430,77 @@ async def test_ensure_authenticated_awaits_client():
     await resource._ensure_authenticated()
 
     client.ensure_authenticated.assert_awaited_once()
+## RESOURCE TESTs
+@pytest.fixture
+def api():
+    return AsyncAllegroAPI(client_id="test")
+
+
+@pytest.mark.parametrize(
+    "resource_name",
+    [
+        "offers",
+        "categories",
+        "orders",
+        "user",
+        "payments",
+        "billing",
+        "products",
+        "fulfillment",
+        "promotions",
+        "customer_service",
+        "advanced_offers",
+        "auctions",
+        "misc",
+    ],
+)
+def test_async_client_uses_async_resources(api, resource_name):
+    #test do błędu 5 - async client korzysta zasync resourców
+    resource = getattr(api, resource_name)
+
+    assert isinstance(
+        resource, AsyncBaseResource
+    ), f"{resource_name} is not async resource"
+
+
+@pytest.mark.parametrize(
+    "resource_name",
+    [
+        "offers",
+        "categories",
+        "orders",
+        "user",
+        "payments",
+        "billing",
+        "products",
+        "fulfillment",
+        "promotions",
+        "customer_service",
+        "advanced_offers",
+        "auctions",
+        "misc",
+    ],
+)
+def test_async_resources_methods_are_coroutines(api, resource_name):
+    # test do błędu 5 - metody w async resourcach muszą być async
+    resource = getattr(api, resource_name)
+
+    methods = [
+        method
+        for name, method in inspect.getmembers(resource, predicate=callable)
+        if not name.startswith("_")
+    ]
+
+    for method in methods:
+        assert inspect.iscoroutinefunction(
+            method
+        ), f"{resource_name}.{method.__name__} is not async"
+
+
+def test_request_does_not_await_handle_response():
+    # test do błędu 5 - _request nie powinien awaitować _handle_response
+    awaited = _get_awaited_methods(AsyncBaseAPIClient._request)
+
+    assert "_handle_response" not in awaited, (
+        "_request should not await _handle_response because it is synchronous"
+    )

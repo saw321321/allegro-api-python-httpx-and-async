@@ -430,7 +430,7 @@ class AsyncBaseAPIClient:
             **kwargs,
         )
         
-        return await self._handle_response(response)
+        return self._handle_response(response)
     
     async def get(self, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
         """Make async GET request."""

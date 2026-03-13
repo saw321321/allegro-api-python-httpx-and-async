@@ -2,34 +2,34 @@
 API resources for Allegro API client.
 """
 
-from .base import BaseResource
-from .offers import OffersResource
-from .categories import CategoriesResource
-from .orders import OrdersResource
-from .user import UserResource
-from .payments import PaymentsResource
-from .billing import BillingResource
-from .products import ProductsResource
-from .fulfillment import FulfillmentResource
-from .promotions import PromotionsResource
-from .customer_service import CustomerServiceResource
-from .advanced_offers import AdvancedOffersResource
-from .auctions import AuctionsResource
-from .misc import MiscResource
+from .base import BaseResource, AsyncBaseResource
+from .offers import OffersResource, AsyncOffersResource
+from .categories import CategoriesResource, AsyncCategoriesResource
+from .orders import OrdersResource, AsyncOrdersResource
+from .user import UserResource, AsyncUserResource
+from .payments import PaymentsResource, AsyncPaymentsResource
+from .billing import BillingResource, AsyncBillingResource
+from .products import ProductsResource, AsyncProductsResource
+from .fulfillment import FulfillmentResource, AsyncFulfillmentResource
+from .promotions import PromotionsResource, AsyncPromotionsResource
+from .customer_service import CustomerServiceResource, AsyncCustomerServiceResource
+from .advanced_offers import AdvancedOffersResource, AsyncAdvancedOffersResource
+from .auctions import AuctionsResource, AsyncAuctionsResource
+from .misc import MiscResource, AsyncMiscResource
 
 __all__ = [
-    "BaseResource",
-    "OffersResource",
-    "CategoriesResource",
-    "OrdersResource",
-    "UserResource",
-    "PaymentsResource",
-    "BillingResource",
-    "ProductsResource",
-    "FulfillmentResource",
-    "PromotionsResource",
-    "CustomerServiceResource",
-    "AdvancedOffersResource",
-    "AuctionsResource",
-    "MiscResource",
-]
+    "BaseResource", "AsyncBaseResource",
+    "OffersResource", "AsyncOffersResource",
+    "CategoriesResource", "AsyncCategoriesResource",
+    "OrdersResource", "AsyncOrdersResource",
+    "UserResource", "AsyncUserResource",
+    "PaymentsResource", "AsyncPaymentsResource",
+    "BillingResource", "AsyncBillingResource",
+    "ProductsResource", "AsyncProductsResource",
+    "FulfillmentResource", "AsyncFulfillmentResource",
+    "PromotionsResource", "AsyncPromotionsResource",
+    "CustomerServiceResource", "AsyncCustomerServiceResource",
+    "AdvancedOffersResource", "AsyncAdvancedOffersResource",
+    "AuctionsResource", "AsyncAuctionsResource",
+    "MiscResource", "AsyncMiscResource"
+] 

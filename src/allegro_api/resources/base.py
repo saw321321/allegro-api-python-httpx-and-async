@@ -80,7 +80,7 @@ class BaseResource:
         return items
 
 
-class AsyncBaseResource: #TODO : add async version of resources
+class AsyncBaseResource: 
     """Async Base class for API resources."""
     
     def __init__(self, client: "AsyncAllegroAPI"):

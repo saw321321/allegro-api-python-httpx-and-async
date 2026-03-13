@@ -9,19 +9,19 @@ import httpx
 from allegro_api.exceptions import AuthenticationError
 from .base import AsyncBaseAPIClient
 from .auth import AsyncOAuth2Client, OAuth2Token
-from .resources.offers import OffersResource
-from .resources.categories import CategoriesResource
-from .resources.orders import OrdersResource
-from .resources.user import UserResource
-from .resources.payments import PaymentsResource
-from .resources.billing import BillingResource
-from .resources.products import ProductsResource
-from .resources.fulfillment import FulfillmentResource
-from .resources.promotions import PromotionsResource
-from .resources.customer_service import CustomerServiceResource
-from .resources.advanced_offers import AdvancedOffersResource
-from .resources.auctions import AuctionsResource
-from .resources.misc import MiscResource
+from .resources.offers import AsyncOffersResource
+from .resources.categories import AsyncCategoriesResource
+from .resources.orders import AsyncOrdersResource
+from .resources.user import AsyncUserResource
+from .resources.payments import AsyncPaymentsResource
+from .resources.billing import AsyncBillingResource
+from .resources.products import AsyncProductsResource
+from .resources.fulfillment import AsyncFulfillmentResource
+from .resources.promotions import AsyncPromotionsResource
+from .resources.customer_service import AsyncCustomerServiceResource
+from .resources.advanced_offers import AsyncAdvancedOffersResource
+from .resources.auctions import AsyncAuctionsResource
+from .resources.misc import AsyncMiscResource
 
 
 logger = logging.getLogger(__name__)
@@ -93,19 +93,19 @@ class AsyncAllegroAPI(AsyncBaseAPIClient):
     
     def _init_resources(self) -> None: #no async needed but need to change to async resources
         """Initialize API resources."""
-        self.offers = OffersResource(self)
-        self.categories = CategoriesResource(self)
-        self.orders = OrdersResource(self)
-        self.user = UserResource(self)
-        self.payments = PaymentsResource(self)
-        self.billing = BillingResource(self)
-        self.products = ProductsResource(self)
-        self.fulfillment = FulfillmentResource(self)
-        self.promotions = PromotionsResource(self)
-        self.customer_service = CustomerServiceResource(self)
-        self.advanced_offers = AdvancedOffersResource(self)
-        self.auctions = AuctionsResource(self)
-        self.misc = MiscResource(self)
+        self.offers = AsyncOffersResource(self)
+        self.categories = AsyncCategoriesResource(self)
+        self.orders = AsyncOrdersResource(self)
+        self.user = AsyncUserResource(self)
+        self.payments = AsyncPaymentsResource(self)
+        self.billing = AsyncBillingResource(self)
+        self.products = AsyncProductsResource(self)
+        self.fulfillment = AsyncFulfillmentResource(self)
+        self.promotions = AsyncPromotionsResource(self)
+        self.customer_service = AsyncCustomerServiceResource(self)
+        self.advanced_offers = AsyncAdvancedOffersResource(self)
+        self.auctions = AsyncAuctionsResource(self)
+        self.misc = AsyncMiscResource(self)
     
     async def authenticate( 
         self,

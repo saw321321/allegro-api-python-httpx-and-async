@@ -4,7 +4,7 @@ User resource for Allegro API.
 
 from typing import Dict, Any, List, Optional
 
-from .base import BaseResource
+from .base import BaseResource,AsyncBaseResource
 
 
 class UserResource(BaseResource):
@@ -302,3 +302,299 @@ class UserResource(BaseResource):
         params = {k: v for k, v in params.items() if v is not None}
         
         return self.client.get("/messaging/threads", params=params)
+
+class AsyncUserResource(AsyncBaseResource):
+    """Async Resource for user information and settings."""
+    
+    async def get_me(self) -> Dict[str, Any]:
+        """
+        Get current user information.
+        
+        Returns:
+            User information
+        """
+        await self._ensure_authenticated()
+        return await self.client.get("/me")
+    
+    async def get_ratings(
+        self,
+        user_id: Optional[str] = None,
+        recommended: Optional[bool] = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """
+        Get user ratings.
+        
+        Args:
+            user_id: User ID (None for current user)
+            recommended: Filter by recommended
+            limit: Number of results
+            offset: Results offset
+            
+        Returns:
+            Ratings response
+        """
+        if user_id:
+            endpoint = f"/users/{user_id}/ratings"
+        else:
+            await self._ensure_authenticated()
+            endpoint = "/sale/user-ratings"
+        
+        params = {
+            "recommended": recommended,
+            "limit": limit,
+            "offset": offset,
+        }
+        
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        
+        return await self.client.get(endpoint, params=params)
+    
+    async def get_rating_summary(self, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get user rating summary.
+        
+        Args:
+            user_id: User ID (None for current user)
+            
+        Returns:
+            Rating summary
+        """
+        if user_id:
+            endpoint = f"/users/{user_id}/ratings-summary"
+        else:
+            await self._ensure_authenticated()
+            endpoint = "/sale/user-ratings-summary"
+        
+        return await self.client.get(endpoint)
+    
+    async def get_return_policies(self) -> Dict[str, Any]:
+        """
+        Get user's return policies.
+        
+        Returns:
+            Return policies
+        """
+        await self._ensure_authenticated()
+        return await self.client.get("/after-sales-service-conditions/return-policies")
+    
+    async def get_return_policy(self, policy_id: str) -> Dict[str, Any]:
+        """
+        Get specific return policy.
+        
+        Args:
+            policy_id: Policy ID
+            
+        Returns:
+            Return policy details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/after-sales-service-conditions/return-policies/{policy_id}")
+    
+    async def create_return_policy(self, policy_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create return policy.
+        
+        Args:
+            policy_data: Policy data
+            
+        Returns:
+            Created policy response
+        """
+        await self._ensure_authenticated()
+        return await self.client.post("/after-sales-service-conditions/return-policies", json_data=policy_data)
+    
+    async def update_return_policy(self, policy_id: str, policy_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update return policy.
+        
+        Args:
+            policy_id: Policy ID
+            policy_data: Updated policy data
+            
+        Returns:
+            Updated policy response
+        """
+        await self._ensure_authenticated()
+        return await self.client.put(
+            f"/after-sales-service-conditions/return-policies/{policy_id}",
+            json_data=policy_data,
+        )
+    
+    async def get_warranties(self) -> Dict[str, Any]:
+        """
+        Get user's warranties.
+        
+        Returns:
+            Warranties
+        """
+        await self._ensure_authenticated()
+        return await self.client.get("/after-sales-service-conditions/warranties")
+    
+    async def get_warranty(self, warranty_id: str) -> Dict[str, Any]:
+        """
+        Get specific warranty.
+        
+        Args:
+            warranty_id: Warranty ID
+            
+        Returns:
+            Warranty details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/after-sales-service-conditions/warranties/{warranty_id}")
+    
+    async def create_warranty(self, warranty_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create warranty.
+        
+        Args:
+            warranty_data: Warranty data
+            
+        Returns:
+            Created warranty response
+        """
+        await self._ensure_authenticated()
+        return await self.client.post("/after-sales-service-conditions/warranties", json_data=warranty_data)
+    
+    async def update_warranty(self, warranty_id: str, warranty_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update warranty.
+        
+        Args:
+            warranty_id: Warranty ID
+            warranty_data: Updated warranty data
+            
+        Returns:
+            Updated warranty response
+        """
+        await self._ensure_authenticated()
+        return await self.client.put(
+            f"/after-sales-service-conditions/warranties/{warranty_id}",
+            json_data=warranty_data,
+        )
+    
+    async def get_shipping_rates(self) -> Dict[str, Any]:
+        """
+        Get user's shipping rates.
+        
+        Returns:
+            Shipping rates
+        """
+        await self._ensure_authenticated()
+        return await self.client.get("/sale/shipping-rates")
+    
+    async def get_shipping_rate(self, rate_id: str) -> Dict[str, Any]:
+        """
+        Get specific shipping rate.
+        
+        Args:
+            rate_id: Rate ID
+            
+        Returns:
+            Shipping rate details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/shipping-rates/{rate_id}")
+    
+    async def create_shipping_rate(self, rate_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create shipping rate.
+        
+        Args:
+            rate_data: Rate data
+            
+        Returns:
+            Created rate response
+        """
+        await self._ensure_authenticated()
+        return await self.client.post("/sale/shipping-rates", json_data=rate_data)
+    
+    async def update_shipping_rate(self, rate_id: str, rate_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update shipping rate.
+        
+        Args:
+            rate_id: Rate ID
+            rate_data: Updated rate data
+            
+        Returns:
+            Updated rate response
+        """
+        await self._ensure_authenticated()
+        return await self.client.put(f"/sale/shipping-rates/{rate_id}", json_data=rate_data)
+    
+    async def get_disputes(
+        self,
+        status: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """
+        Get user's disputes.
+        
+        Args:
+            status: Dispute status filter
+            limit: Number of results
+            offset: Results offset
+            
+        Returns:
+            Disputes response
+        """
+        await self._ensure_authenticated()
+        
+        params = {
+            "status": status,
+            "limit": limit,
+            "offset": offset,
+        }
+        
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        
+        return await self.client.get("/sale/disputes", params=params)
+    
+    async def get_dispute(self, dispute_id: str) -> Dict[str, Any]:
+        """
+        Get dispute details.
+        
+        Args:
+            dispute_id: Dispute ID
+            
+        Returns:
+            Dispute details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/disputes/{dispute_id}")
+    
+    async def get_messages(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        read: Optional[bool] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get user messages.
+        
+        Args:
+            limit: Number of results
+            offset: Results offset
+            read: Filter by read status
+            
+        Returns:
+            Messages response
+        """
+        await self._ensure_authenticated()
+        
+        params = {
+            "limit": limit,
+            "offset": offset,
+            "read": read,
+        }
+        
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        
+        return await self.client.get("/messaging/threads", params=params)

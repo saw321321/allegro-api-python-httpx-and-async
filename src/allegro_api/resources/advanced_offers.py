@@ -5,7 +5,7 @@ Advanced offer features for Allegro API.
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from .base import BaseResource
+from .base import BaseResource,AsyncBaseResource
 
 
 class AdvancedOffersResource(BaseResource):
@@ -379,7 +379,7 @@ class AdvancedOffersResource(BaseResource):
         self._ensure_authenticated()
         return self.client.get(f"/sale/price-automation/rules/{rule_id}")
     
-    def update_price_automation_rule(
+    def update_price_automation_rule(    ###BRAK
         self,
         rule_id: str,
         name: Optional[str] = None,
@@ -629,3 +629,647 @@ class AdvancedOffersResource(BaseResource):
         """
         self._ensure_authenticated()
         self.client.delete(f"/sale/size-tables/{table_id}")
+
+
+
+
+class AsyncAdvancedOffersResource(AsyncBaseResource):
+    """Async resource for advanced offer features."""
+
+    # Offer Variants
+
+    async def get_offer_variants(self, offer_id: str) -> Dict[str, Any]:
+        """
+        Get offer variants.
+        
+        Args:
+            offer_id: Offer ID
+            
+        Returns:
+            Variants information
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/offers/{offer_id}/variants")
+
+    async def create_variant_set(
+        self,
+        name: str,
+        parameters: List[Dict[str, Any]],
+        offers: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Create variant set.
+        
+        Args:
+            name: Variant set name
+            parameters: Variant parameters
+            offers: Offers in set
+            
+        Returns:
+            Created variant set
+        """
+
+        await self._ensure_authenticated()
+
+        data = {
+            "name": name,
+            "parameters": parameters,
+            "offers": offers,
+        }
+
+        return await self.client.post("/sale/variant-sets", json_data=data)
+
+    async def get_variant_sets(
+        self,
+        offer_id: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """
+        Get variant sets.
+        
+        Args:
+            offer_id: Offer ID filter
+            limit: Number of results
+            offset: Results offset
+            
+        Returns:
+            Variant sets response
+        """
+
+        await self._ensure_authenticated()
+
+        params = {
+            "offer.id": offer_id,
+            "limit": limit,
+            "offset": offset,
+        }
+
+        params = {k: v for k, v in params.items() if v is not None}
+
+        return await self.client.get("/sale/variant-sets", params=params)
+
+    async def get_variant_set(self, set_id: str) -> Dict[str, Any]:
+        """
+        Get variant set details.
+        
+        Args:
+            set_id: Set ID
+            
+        Returns:
+            Set details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(f"/sale/variant-sets/{set_id}")
+
+    async def update_variant_set(
+        self,
+        set_id: str,
+        name: Optional[str] = None,
+        parameters: Optional[List[Dict[str, Any]]] = None,
+        offers: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update offer translation.
+        
+        Args:
+            offer_id: Offer ID
+            language: Target language
+            title: Translated title
+            description: Translated description
+            parameters: Translated parameters
+            
+        Returns:
+            Updated translation
+        """
+
+        await self._ensure_authenticated()
+
+        data = {}
+        if name:
+            data["name"] = name
+        if parameters:
+            data["parameters"] = parameters
+        if offers:
+            data["offers"] = offers
+
+        return await self.client.put(
+            f"/sale/variant-sets/{set_id}",
+            json_data=data,
+        )
+
+    async def delete_variant_set(self, set_id: str) -> None:
+        """
+        Delete variant set.
+        
+        Args:
+            set_id: Set ID
+        """
+        await self._ensure_authenticated()
+        await self.client.delete(f"/sale/variant-sets/{set_id}")
+
+    # Offer Translations
+
+    async def get_offer_translations(
+        self,
+        offer_id: str,
+        language: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get offer translations.
+        
+        Args:
+            offer_id: Offer ID
+            language: Target language (if not specified, returns all translations)
+            
+        Returns:
+            Translations response
+        """
+
+        await self._ensure_authenticated()
+
+        params = {}
+        if language:
+            params["language"] = language
+
+        return await self.client.get(
+            f"/sale/offers/{offer_id}/translations",
+            params=params,
+        )
+
+    async def update_offer_translation(
+        self,
+        offer_id: str,
+        language: str,
+        title: Optional[str] = None,
+        description: Optional[Dict[str, Any]] = None,
+        parameters: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update offer translation.
+        
+        Args:
+            offer_id: Offer ID
+            language: Target language
+            title: Translated title
+            description: Translated description
+            parameters: Translated parameters
+            
+        Returns:
+            Updated translation
+        """
+
+        await self._ensure_authenticated()
+
+        data = {"language": language}
+
+        if title:
+            data["title"] = title
+        if description:
+            data["description"] = description
+        if parameters:
+            data["parameters"] = parameters
+
+        return await self.client.patch(
+            f"/sale/offers/{offer_id}/translations/{language}",
+            json_data=data,
+        )
+
+    async def delete_offer_translation(
+        self,
+        offer_id: str,
+        language: str,
+        element: Optional[List[str]] = None,
+        product_ids: Optional[List[str]] = None,
+    ) -> None:
+        """
+        Delete offer translation.
+        
+        Args:
+            offer_id: Offer ID
+            language: Language to delete
+            element: Specific elements to delete (title, description, safety_information)
+            product_ids: Product IDs for safety information deletion
+        """
+
+        await self._ensure_authenticated()
+
+        params = {}
+        if element:
+            params["element"] = element
+        if product_ids:
+            params["products.id"] = product_ids
+
+        await self.client.delete(
+            f"/sale/offers/{offer_id}/translations/{language}",
+            params=params if params else None,
+        )
+
+
+    # Additional Services Translations
+
+    async def get_additional_services_translations(
+        self,
+        group_id: str,
+        language: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get additional services group translations.
+        """
+
+        await self._ensure_authenticated()
+
+        params = {}
+        if language:
+            params["language"] = language
+
+        return await self.client.get(
+            f"/sale/offer-additional-services/groups/{group_id}/translations",
+            params=params,
+        )
+
+    async def update_additional_services_translation(
+        self,
+        group_id: str,
+        language: str,
+        name: Optional[str] = None,
+        services: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update additional services group translation.
+        """
+
+        await self._ensure_authenticated()
+
+        data = {}
+        if name:
+            data["name"] = name
+        if services:
+            data["services"] = services
+
+        return await self.client.patch(
+            f"/sale/offer-additional-services/groups/{group_id}/translations/{language}",
+            json_data=data,
+        )
+
+    async def delete_additional_services_translation(
+        self,
+        group_id: str,
+        language: str,
+    ) -> None:
+        """
+        Delete additional services group translation.
+        """
+
+        await self._ensure_authenticated()
+
+        await self.client.delete(
+            f"/sale/offer-additional-services/groups/{group_id}/translations/{language}"
+        )
+
+    # Automatic Pricing
+
+    async def get_price_automation_rules(
+        self,
+        offer_id: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """
+        Get price automation rules.
+        
+        Args:
+            offer_id: Offer ID filter
+            status: Status filter
+            limit: Number of results
+            offset: Results offset
+            
+        Returns:
+            Rules response
+        """
+
+        await self._ensure_authenticated()
+
+        params = {
+            "offer.id": offer_id,
+            "status": status,
+            "limit": limit,
+            "offset": offset,
+        }
+
+        params = {k: v for k, v in params.items() if v is not None}
+
+        return await self.client.get(
+            "/sale/price-automation/rules",
+            params=params,
+        )
+
+    async def create_price_automation_rule(
+        self,
+        name: str,
+        offers: List[str],
+        conditions: Dict[str, Any],
+        actions: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Create price automation rule.
+        
+        Args:
+            name: Rule name
+            offers: Target offer IDs
+            conditions: Rule conditions
+            actions: Rule actions
+            
+        Returns:
+            Created rule
+        """
+
+        await self._ensure_authenticated()
+
+        data = {
+            "name": name,
+            "offers": [{"id": offer_id} for offer_id in offers],
+            "conditions": conditions,
+            "actions": actions,
+        }
+
+        return await self.client.post(
+            "/sale/price-automation/rules",
+            json_data=data,
+        )
+
+    async def get_price_automation_rule(self, rule_id: str) -> Dict[str, Any]:
+        """
+        Get price automation rule details.
+        
+        Args:
+            rule_id: Rule ID
+            
+        Returns:
+            Rule details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(
+            f"/sale/price-automation/rules/{rule_id}"
+        )
+
+    async def update_price_automation_rule(
+        self,
+        rule_id: str,
+        name: Optional[str] = None,
+        offers: Optional[List[str]] = None,
+        conditions: Optional[Dict[str, Any]] = None,
+        actions: Optional[Dict[str, Any]] = None,
+        enabled: Optional[bool] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update price automation rule.
+        """
+
+        await self._ensure_authenticated()
+
+        data = {}
+
+        if name:
+            data["name"] = name
+
+        if offers:
+            data["offers"] = [{"id": offer_id} for offer_id in offers]
+
+        if conditions:
+            data["conditions"] = conditions
+
+        if actions:
+            data["actions"] = actions
+
+        if enabled is not None:
+            data["enabled"] = enabled
+
+        return await self.client.put(
+            f"/sale/price-automation/rules/{rule_id}",
+            json_data=data,
+        )
+
+    async def delete_price_automation_rule(self, rule_id: str) -> None:
+        """
+        Delete price automation rule.
+        
+        Args:
+            rule_id: Rule ID
+        """
+        await self._ensure_authenticated()
+        await self.client.delete(
+            f"/sale/price-automation/rules/{rule_id}"
+        )
+
+    # Compatibility Lists
+
+    async def get_compatibility_lists(
+        self,
+        type_: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Dict[str, Any]:
+        """
+        Get compatibility lists.
+        
+        Args:
+            type_: List type filter
+            limit: Number of results
+            offset: Results offset
+            
+        Returns:
+            Lists response
+        """
+
+        await self._ensure_authenticated()
+
+        params = {
+            "type": type_,
+            "limit": limit,
+            "offset": offset,
+        }
+
+        params = {k: v for k, v in params.items() if v is not None}
+
+        return await self.client.get(
+            "/sale/compatibility-lists",
+            params=params,
+        )
+
+    async def create_compatibility_list(
+        self,
+        name: str,
+        type_: str,
+        items: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Create compatibility list.
+        
+        Args:
+            name: List name
+            type_: List type
+            items: List items
+            
+        Returns:
+            Created list
+        """
+        await self._ensure_authenticated()
+
+        data = {
+            "name": name,
+            "type": type_,
+            "items": items,
+        }
+
+        return await self.client.post(
+            "/sale/compatibility-lists",
+            json_data=data,
+        )
+
+    async def get_compatibility_list(self, list_id: str) -> Dict[str, Any]:
+        """
+        Get compatibility list details.
+        
+        Args:
+            list_id: List ID
+            
+        Returns:
+            List details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(
+            f"/sale/compatibility-lists/{list_id}"
+        )
+
+    async def update_compatibility_list(
+        self,
+        list_id: str,
+        name: Optional[str] = None,
+        items: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update compatibility list.
+        """
+
+        await self._ensure_authenticated()
+
+        data = {}
+
+        if name:
+            data["name"] = name
+
+        if items:
+            data["items"] = items
+
+        return await self.client.put(
+            f"/sale/compatibility-lists/{list_id}",
+            json_data=data,
+        )
+
+    async def delete_compatibility_list(self, list_id: str) -> None:
+        """
+        Delete compatibility list.
+        
+        Args:
+            list_id: List ID
+        """
+        await self._ensure_authenticated()
+        await self.client.delete(
+            f"/sale/compatibility-lists/{list_id}"
+        )
+
+    # Size Tables
+
+    async def get_size_tables(self) -> Dict[str, Any]:
+        """
+        Get size tables.
+        
+        Returns:
+            Size tables response
+        """
+        await self._ensure_authenticated()
+        return await self.client.get("/sale/size-tables")
+
+    async def create_size_table(
+        self,
+        name: str,
+        type_: str,
+        content: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Create size table.
+        
+        Args:
+            name: Table name
+            type_: Table type
+            content: Table content
+            
+        Returns:
+            Created table
+        """
+        await self._ensure_authenticated()
+
+        data = {
+            "name": name,
+            "type": type_,
+            "content": content,
+        }
+
+        return await self.client.post(
+            "/sale/size-tables",
+            json_data=data,
+        )
+
+    async def get_size_table(self, table_id: str) -> Dict[str, Any]:
+        """
+        Get size table details.
+        
+        Args:
+            table_id: Table ID
+            
+        Returns:
+            Table details
+        """
+        await self._ensure_authenticated()
+        return await self.client.get(
+            f"/sale/size-tables/{table_id}"
+        )
+
+    async def update_size_table(
+        self,
+        table_id: str,
+        name: Optional[str] = None,
+        content: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Update size table.
+        """
+
+        await self._ensure_authenticated()
+
+        data = {}
+
+        if name:
+            data["name"] = name
+
+        if content:
+            data["content"] = content
+
+        return await self.client.put(
+            f"/sale/size-tables/{table_id}",
+            json_data=data,
+        )
+
+    async def delete_size_table(self, table_id: str) -> None:
+        """
+        Delete size table.
+        
+        Args:
+            table_id: Table ID
+        """
+        await self._ensure_authenticated()
+        await self.client.delete(
+            f"/sale/size-tables/{table_id}"
+        )
